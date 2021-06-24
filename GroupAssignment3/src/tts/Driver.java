@@ -6,12 +6,15 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -25,6 +28,11 @@ import javax.swing.filechooser.FileSystemView;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import com.sun.speech.freetts.Voice;
 
@@ -52,6 +60,7 @@ public class Driver {
 		JButton b1 = new JButton("Read File");
 		JButton b2 = new JButton("Read Text");
 		JButton b4 = new JButton("Read PDF");
+		JButton b5 = new JButton("Read Doc File");
 		JButton b3 = new JButton("Exit");
 
 		b1.addActionListener(new ActionListener() {
@@ -177,13 +186,45 @@ public class Driver {
 				System.exit(0);
 			}
 		});
+		
+		b5.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				JFileChooser window = new JFileChooser();
+				int returnValue = window.showOpenDialog(null);
+				
+				if(returnValue == JFileChooser.APPROVE_OPTION) {
+					XWPFDocument document;
+					try {
+						document = new XWPFDocument(new FileInputStream(window.getSelectedFile()));
+						XWPFWordExtractor extract = new XWPFWordExtractor(document);
+						//System.out.print(extract.getText());
+						//String doc=extract.getText();
+						//voice.speak(removeDuplicateWords(doc));
+						voice.speak(extract.getText());
+						
+						extract.close();
+					} catch (FileNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				
+				}
+			}
+		});
+
 
 		f.add(b1);
 		f.add(b2);
-		f.add(b3);
 		f.add(b4);
+		f.add(b5);
+		f.add(b3);
+		
 
-		f.setLayout(new GridLayout(3, 1));
+		f.setLayout(new GridLayout(5, 1));
 
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -210,8 +251,27 @@ public class Driver {
 		return f;
 	}
 
+	public static String removeDuplicateWords(String sentence)
+	{
+		
+		String regex = "\\b(\\w+)(?:\\W+\\1\\b)+";
+		
+		// possible regex for phrases: (\W|^)(.+)\s\2
+		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+		
+		Matcher m = pattern.matcher(sentence);
+		
+		while(m.find())
+		{
+			sentence = sentence.replaceAll(m.group(), m.group(1));
+		}
+		
+		return sentence;
+		
+	}
+	
 	public static int readText(String currentLine, Voice voice, int sentenceCount, int sentenceLimit)
-			throws MalformedURLException {
+			throws MalformedURLException, InterruptedException {
 		String[] splitLine;
 
 		String leftOverLine = "";
@@ -224,7 +284,9 @@ public class Driver {
 			leftOverLine = splitLine[1];
 
 			// reads the last sentence taken from file line
-			voice.speak(currentSentence.replaceAll("[^a-zA-Z0-9 ]", ""));
+			currentSentence = currentSentence.replaceAll("[^a-zA-Z0-9 ]", "");
+
+			voice.speak(removeDuplicateWords(currentSentence));
 
 			// increments sentence count and exits function if sentence limit reached
 			sentenceCount++;
@@ -240,7 +302,10 @@ public class Driver {
 				leftOverLine = splitLine[1];
 
 				// reads the last sentence taken from file line
-				voice.speak(currentSentence.replaceAll("[^a-zA-Z0-9 ]", ""));
+				currentSentence = currentSentence.replaceAll("[^a-zA-Z0-9 ]", "");
+
+				voice.speak(removeDuplicateWords(currentSentence));
+				TimeUnit.SECONDS.sleep(2);
 
 				// increments sentence count and exits function if sentence limit reached
 				sentenceCount++;
@@ -269,7 +334,7 @@ public class Driver {
 //		doc.close();
 	}
 
-	public static void readPDFile(File selectedFile2, Voice voice2, int sentenceLimit2)throws IOException 
+	public static void readPDFile(File selectedFile2, Voice voice2, int sentenceLimit2)throws IOException, InterruptedException 
 	{
 		File file = selectedFile2;
 		String currentLine2 = "";
@@ -283,11 +348,14 @@ public class Driver {
 		   PDFTextStripper pdfStripper = new PDFTextStripper();
 		   String text = pdfStripper.getText(document);
 		   
+		   
 		   Scanner fileScanner = new Scanner(text);
 		  // System.out.println(text);
 		// Reading each line of file using Scanner class
+		   
 			while (fileScanner.hasNext()) {
 				// read next line from file
+				voice2.speak(removeDuplicateWords(text));
 				currentLine2 = leftOver2 + " " + fileScanner.nextLine();
 				System.out.println("CurrentLine : " + currentLine2);
 
@@ -321,13 +389,14 @@ public class Driver {
 					return;
 				}
 			}
-
+			document.close();
 			fileScanner.close();
 			return;
 
+			
 	}
 	public static void readTextFile(File selectedFile, Voice voice, int sentenceLimit)
-			throws FileNotFoundException, MalformedURLException {
+			throws FileNotFoundException, MalformedURLException, InterruptedException {
 		// initializing values
 		File file = selectedFile;
 		String currentLine = "";
