@@ -318,20 +318,65 @@ public class Driver {
 		return sentenceCount;
 	}
 
-	public static void readWordFile(File selectedFile, Voice voice, int sentenceLimit){
+	public static void readWordFile(File selectedFile3, Voice voice3, int sentenceLimit3) throws InterruptedException, FileNotFoundException, IOException{
 		
-//		HWPFDocument doc = new HWPFDocument(new FileInputStream(selectedFile));
-////        / / Get the entire doc document Range, can be understood as a document object
-//		Range r = doc.getRange();
-//
-//		String text = new String("");
-//		// Get all the plain text in the entire document, including carriage return and
-//		// line feed. One paragraph is a line
-//		text = r.text();
-//		
-//		readText(text, voice, 0, sentenceLimit);
-//		
-//		doc.close();
+		File file = selectedFile3;
+		String currentLine3 = "";
+		String leftOver3 = "";
+		int sentenceCount3 = 0;
+		
+		// Creating Scanner instance to read from file
+		   
+		XWPFDocument document;
+		
+		    document = new XWPFDocument(new FileInputStream(file));
+		    XWPFWordExtractor extract = new XWPFWordExtractor(document);
+			
+			String word = extract.getText();
+			
+		   Scanner fileScanner = new Scanner(word);
+		 
+		// Reading each line of file using Scanner class
+		   
+			while (fileScanner.hasNext()) {
+				// read next line from file
+				voice3.speak(removeDuplicateWords(word));
+				currentLine3 = leftOver3 + " " + fileScanner.nextLine();
+				System.out.println("CurrentLine : " + currentLine3);
+
+				int index = 0;
+
+				if (currentLine3.lastIndexOf('.') != -1) {
+					index = currentLine3.lastIndexOf('.');
+				} else if (currentLine3.lastIndexOf('!') != -1) {
+					index = currentLine3.lastIndexOf('!');
+				} else if (currentLine3.lastIndexOf('?') != -1) {
+					index = currentLine3.lastIndexOf('?');
+				}
+
+				if (index != 0) {
+					String sentences = currentLine3.substring(0, index + 1);
+
+					leftOver3 = currentLine3.substring(index + 1);
+
+					System.out.println("Sentences : " + sentences);
+					System.out.println("LeftOver : " + leftOver3);
+
+					sentenceCount3 = readText(sentences, voice3, sentenceCount3, sentenceLimit3);
+					System.out.println(sentenceCount3);
+				} else {
+					leftOver3 = currentLine3;
+					System.out.println("LeftOver: " + leftOver3);
+				}
+
+				if (sentenceCount3 == sentenceLimit3) {
+					fileScanner.close();
+					return;
+				}
+			}
+			extract.close();
+			fileScanner.close();
+			return;
 	}
 
 	public static void readPDFile(File selectedFile2, Voice voice2, int sentenceLimit2)throws IOException, InterruptedException 
